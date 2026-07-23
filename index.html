@@ -98,8 +98,8 @@
         const ctx = canvas.getContext("2d");
 
         // Game Configuration
-        const trackLength = 15000; // Finish line distance units
-        let timeLeft = 300; // 5 minutes in seconds
+        const trackLength = 15000; 
+        let timeLeft = 300; 
         let gameRunning = true;
         let gameResult = "";
 
@@ -117,20 +117,19 @@
                 x: 0,
                 y: 0,
                 speed: 0,
-                maxSpeed: i === 0 ? 12 : 9.5 + Math.random() * 2, // Player can go slightly faster if managing terrain well
+                maxSpeed: i === 0 ? 12 : 9.5 + Math.random() * 2, 
                 accel: 0.1 + (Math.random() * 0.05),
                 color: colors[i],
                 rank: 10
             });
         }
 
-        // Terrain Formula (Hills & Valleys definition)
+        // Terrain Formula
         function getTerrainHeight(x) {
-            // Generates smooth overlapping hills using sine waves
             return 220 + Math.sin(x * 0.005) * 40 + Math.cos(x * 0.002) * 30;
         }
 
-        // Event Listeners for Desktop Keyboard
+        // Keyboard Actions
         window.addEventListener("keydown", (e) => {
             if(e.key === "ArrowRight") keys.ArrowRight = true;
             if(e.key === "ArrowLeft") keys.ArrowLeft = true;
@@ -142,13 +141,13 @@
         });
 
         // Touch Control Triggers for Mobile
-        document.getElementById("btn-gas").addEventListener("touchstart", () => keys.ArrowRight = true);
-        document.getElementById("btn-gas").addEventListener("touchend", () => keys.ArrowRight = false);
-        document.getElementById("btn-brake").addEventListener("touchstart", () => keys.ArrowLeft = true);
-        document.getElementById("btn-brake").addEventListener("touchend", () => keys.ArrowLeft = false);
+        document.getElementById("btn-gas").addEventListener("touchstart", (e) => { e.preventDefault(); keys.ArrowRight = true; });
+        document.getElementById("btn-gas").addEventListener("touchend", (e) => { e.preventDefault(); keys.ArrowRight = false; });
+        document.getElementById("btn-brake").addEventListener("touchstart", (e) => { e.preventDefault(); keys.ArrowLeft = true; });
+        document.getElementById("btn-brake").addEventListener("touchend", (e) => { e.preventDefault(); keys.ArrowLeft = false; });
         canvas.addEventListener("click", () => { if(!gameRunning) resetGame(); });
 
-        // Countdown Timer Engine (Per Second)
+        // Countdown Timer Engine
         const timerInterval = setInterval(() => {
             if (!gameRunning) return;
             timeLeft--;
@@ -170,47 +169,42 @@
         }
 
         function update() {
-            // 1. Move Player
+            // FIXED: Correctly targeted elements inside the index array
             let player = racers[0];
             if (keys.ArrowRight) {
                 player.speed = Math.min(player.speed + player.accel, player.maxSpeed);
             } else if (keys.ArrowLeft) {
-                player.speed = Math.max(player.speed - 0.3, 0); // Active braking
+                player.speed = Math.max(player.speed - 0.3, 0); 
             } else {
-                player.speed = Math.max(player.speed - 0.05, 0); // Coasting friction
+                player.speed = Math.max(player.speed - 0.05, 0); 
             }
             player.x += player.speed;
 
-            // 2. Move AI Bots
+            // Move AI Bots
             for(let i = 1; i < racers.length; i++) {
                 let bot = racers[i];
-                // Simple AI accelerating naturally up to their designated speed caps
                 bot.speed = Math.min(bot.speed + bot.accel, bot.maxSpeed);
                 bot.x += bot.speed;
             }
 
-            // Bind all racers safely onto the dynamic hill curves
             racers.forEach(r => {
                 r.y = getTerrainHeight(r.x);
             });
 
-            // 3. Dynamic Standings & Rank System
+            // Standings Rank System
             let sorted = [...racers].sort((a, b) => b.x - a.x);
             sorted.forEach((racer, index) => {
                 let actualRacer = racers.find(r => r.id === racer.id);
                 actualRacer.rank = index + 1;
             });
 
-            // Update Screen Stats Indicators
             document.getElementById("position").innerText = player.rank + "/10";
             let pct = Math.min(Math.floor((player.x / trackLength) * 100), 100);
             document.getElementById("distance").innerText = pct + "%";
 
-            // Print real-time ticker feed text
             let rankingText = sorted.slice(0, 5).map((r, idx) => `${idx+1}. ${r.name}`).join(" | ");
             document.getElementById("leaderboard").innerText = "TOP 5: " + rankingText;
 
-            // Check Win Condition
             if (player.x >= trackLength) {
                 endGame(true, `FINISH! You placed #${player.rank}!`);
             }
@@ -219,9 +213,9 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            let cameraX = racers[0].x - 100; // Camera tracking stays centered safely behind player profile
+            let cameraX = racers[0].x - 100; 
 
-            // Draw Parallax Hill Road Grid Surfaces 
+            // Draw Road Hills and Valleys
             ctx.fillStyle = "#151530";
             ctx.beginPath();
             ctx.moveTo(0, canvas.height);
@@ -233,7 +227,7 @@
             ctx.lineTo(canvas.width, canvas.height);
             ctx.fill();
 
-            // Highlight Road Finish Line Boundary
+            // Highlight Finish Line Boundary
             let finishLineScreenX = trackLength - cameraX;
             if(finishLineScreenX >= 0 && finishLineScreenX <= canvas.width) {
                 ctx.strokeStyle = "#ff0055";
@@ -247,15 +241,28 @@
                 ctx.fillText("FINISH LINE", finishLineScreenX - 35, 30);
             }
 
-            // Draw the 10 Motorbike Entities
+            // Draw Motorbikes
             racers.forEach(r => {
                 let screenX = r.x - cameraX;
-                // Only render bikes inside active camera sight window frame boundaries
                 if (screenX >= -20 && screenX <= canvas.width + 20) {
                     ctx.fillStyle = r.color;
-                    
-                    // Simple retro motorbike rectangle model chassis layout
                     ctx.fillRect(screenX, r.y - 15, 16, 10); 
                     
-                    // Wheels
                     ctx.fillStyle = "#ffffff";
+                    ctx.beginPath(); ctx.arc(screenX + 2, r.y - 2, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(screenX + 14, r.y - 2, 3, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = "#fff";
+                    ctx.font = "9px Arial";
+                    ctx.fillText(r.id === 0 ? "YOU" : `P${r.rank}`, screenX - 2, r.y - 22);
+                }
+            });
+
+            // Display End Card
+            if (!gameRunning) {
+                ctx.fillStyle = "rgba(0,0,0,0.85)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = "#00ffff";
+                ctx.font = "bold 24px 'Courier New'";
+                ctx.textAlign = "center";
